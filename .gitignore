@@ -1,0 +1,21 @@
+# Build artifacts
+build/
+dist/
+out/
+
+# Dependency directories
+node_modules/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE-specific files
+.idea/
+*.iml
+.vscode/
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
