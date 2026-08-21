@@ -1,309 +1,180 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Canvas ,useThree} from "@react-three/fiber";
-import { OrbitControls, useGLTF } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
-import { Vector3 } from 'three'
-import "./styles.css";
+import React, { useRef, useState, useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { View } from '@react-three/drei';
+import Scene from './Scene';
+import './styles.css';
 
-const Backend = `http://localhost:8000` 
-
-function Model({ url }) {
-  const { scene } = useGLTF(url);
-  return <primitive object={scene} />;
+class SectionData {
+  constructor({ label, section, details, buttonText, buttonLink, image = '' }) {
+    this.label = label;
+    this.section = section;
+    this.details = details;
+    this.buttonText = buttonText;
+    this.buttonLink = buttonLink;
+    this.image = image;
+  }
 }
 
-function Scene({ orbitControlsRef, isRecording, setAnimation ,clip,setClip,exportVid=false, resetExportVideo}) {
+export const SectionEnum = Object.freeze({
+  INTRO: Symbol('intro'),
+  XR: Symbol('xr'),
+  WEB: Symbol('web'),
+  GAMES: Symbol('games'),
+  MOBILE: Symbol('mobile'),
+});
 
-
-
-  function CamRecord({orbitControlsRef, isRecording, setRecord,clip,setClip,exportVid=false, resetExportVideo})
-  {
-    const [index,setIndex]= useState(0);
-    const [urls,setUrls] = useState([])
-    useEffect(()=>{console.log(clip)},[clip])
-    const vec = new Vector3()
-    const { gl } = useThree();
-    const canvas = gl.domElement;
-
-    const uploadDataURls=async ()=>{
-        if(urls.length>0&exportVid)
-        {
-      await fetch(Backend+"/vidMaker/generate/", {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({images: urls}),
-    }).then(response => {
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-      return response.blob();
+const linkMap = new Map([
+  [
+    SectionEnum.INTRO,
+    new SectionData({
+      label: 'Intro',
+      section: 'Hi, I\'m Mayan Shoshani',
+      details: 'My Name is Mayan. I\'m currently a software engineer and designer who enjoys building interesting software, I consider myself a generalist with a special interest in 3D, I have worked on everything from video games, virtual and augmented reality applications, front end and back end web development, and mobile apps. I\'ve worked with small startups and fortune 500 compants to make all kinds of interesting new experiences',
+      buttonText: 'Enter Portfolio',
+      buttonLink: 'https://sites.google.com/view/shoshani-cv',
+      image: 'https://raw.githubusercontent.com/shoshanimayan/shoshanimayan.github.io/master/_images/circle-cropped.png'
     })
-    .then(data => {
-      console.log('Success:', data);
-      console.log("XXX")
-      handleDownload(data)
+  ],
+  [
+    SectionEnum.XR,
+    new SectionData({
+      label: 'XR Development',
+      section: 'XR Development',
+      details: 'I\'ve Been working in XR since 2019, building VR and AR Mixed reality apps for headsets,mobile, and web. I\'ve worked on use cases such as education, medical, and enterprise. I mainly work with Unity, but have experience with threejs webxr and unreal engine.',
+      buttonText: 'View XR Projects',
+      buttonLink: 'https://sites.google.com/view/shoshani-cv/virtual-reality-augmented-reality-projects',
+      image: 'https://raw.githubusercontent.com/shoshanimayan/shoshanimayan.github.io/master/_images/vr-1.png'
     })
-    .catch(error => {
-      console.error('Error:', error);
-    });
-        }
-        resetExportVideo();
-    }
+  ],
+  [
+    SectionEnum.WEB,
+    new SectionData({
+      label: 'Web Development',
+      section: 'Web Development',
+      details: 'I started working in Webdev in 2021, designing and building React front ends, these days I also work on 3D visualizations and data visualizations with threejs. I have some backend experience with AWS, Python Django, and Node js as well.',
+      buttonText: 'View Web Projects',
+      buttonLink: 'https://sites.google.com/view/shoshani-cv/general-software-projects#h.nrlivr3ww3pn',
+      image: 'https://raw.githubusercontent.com/shoshanimayan/shoshanimayan.github.io/master/_images/web-1.png'
+    })
+  ],
+  [
+    SectionEnum.GAMES,
+    new SectionData({
+      label: 'Game Development',
+      section: 'Game Development',
+      details: 'I\'ve been a a hobbyist game developer since I was in college, and have continued to work on my own game projects and participate in game jams, working with game engines like Unity, Godot and Unreal Engine.',
+      buttonText: 'View Game Projects',
+      buttonLink: 'https://sites.google.com/view/shoshani-cv/game-portfolio',
+      image: 'https://raw.githubusercontent.com/shoshanimayan/shoshanimayan.github.io/master/_images/game-1.png'
+    })
+  ],
+  [
+    SectionEnum.MOBILE,
+    new SectionData({
+      label: 'Mobile Development',
+      section: 'Mobile Development',
+      details: 'I have worked professionally as mobile developer with about 2 years of experience, working on enterprise front ends for professional mobile apps. working Natively with Android and Kotlin, React native and typescript, with some swift ios experience',
+      buttonText: 'View Mobile Projects',
+      buttonLink: 'https://sites.google.com/view/shoshani-cv/general-software-projects#h.npybu2ujnrbm',
+      image: 'https://raw.githubusercontent.com/shoshanimayan/shoshanimayan.github.io/master/_images/mobile-1.png'
+    })
+  ]
+]);
 
-    const handleDownload = (blob) => {
-    var url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url
-    link.download = "output.mp4";
-    document.body.appendChild(link); // Append to body
-    link.click();
-    document.body.removeChild(link); // Remove from body
-  };
-
-    useFrame((state,delta)=>{
-      
-      if(!isRecording)
-      {
-        if(clip.length>0)
-        {
-          if(index<clip.length)
-          {
-            orbitControlsRef.current.object.position.lerp(vec.set(clip[index].x,clip[index].y,clip[index].z),delta*5)
-            if(exportVid)
-            {
-              const dataURL = canvas.toDataURL('image/png');
-             
-              setUrls(prev=>[...prev,dataURL])
-            }
-            setIndex(prev=>
-            {
-              prev++;
-              setIndex(prev);
-            }
-            )
-          }
-          else
-          {
-
-            setClip([]);
-            setIndex(0)
-            if(exportVid)
-            {
-              uploadDataURls()
-            }
-          }
-
-        }
-          
-      }
-  })
-    return (<OrbitControls
-      ref={orbitControlsRef}
-      clip= {clip}
-      setClip={setClip}
-      onChange={
-        (e)=>{
-          if(isRecording)
-            {
-              let target = e.target;
-
-              setRecord(prev=>{
-                let pos = target.object.position
-                prev.push({x:pos.x,y:pos.y,z:pos.z})
-                return prev;
-              })
-            }
-        }
-      }
-    />)
-  }
-
-  const [record,setRecord]= useState([])
+export default function App() {
+  const viewRef = useRef();
+  const [selected, setSelected] = useState(SectionEnum.INTRO);
   
-  useEffect(()=>{
+  const [isLoaded, setIsLoaded] = useState(false);
 
-    if(isRecording)
-    {
-      setRecord([])
-    }
-    else
-    {
-      
-
-      if(record.length>0)
-      {
-        setAnimation(record)
-        setRecord([])
-
-      }
-    }
-
-  
-
-  },[isRecording])
-
-  useEffect(()=>{},[clip])
-
-  return (
-
-
-    <Canvas gl={{ preserveDrawingBuffer: true }}>
-      <ambientLight intensity={3.5} />
-      <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
-      <Model url="https://modelviewer.dev/shared-assets/models/Astronaut.glb" />
-      <CamRecord orbitControlsRef={orbitControlsRef} isRecording={isRecording} setRecord={setRecord} clip ={clip} setClip={setClip} exportVid={exportVid} resetExportVideo={resetExportVideo}/>
-    </Canvas>
-  );
-}
-
-function App() {
-  const [animationName, setAnimationName] = useState("");
-  const [isConfiguring, setIsConfiguring] = useState(false);
-  const [backendConnected, setBackendConnected] = useState(false);
-  const [exportVid, setExportVid] = useState(false);
-
-  const [isRecording, setIsRecording] = useState(false);
-  const [animations, setAnimations] = useState([]);
-  const [animation, setAnimation] = useState([]);
-  const [playedClip, setPlayedClip] = useState([]);
-
-
-  const orbitControlsRef = useRef();
-
-  const backendCheck=async()=>{
-    await fetch(Backend+"/vidMaker/status/").then(response => {
-      if (!response.ok) {
-        setBackendConnected(false)
-
-        throw new Error('Network response was not ok');
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log('Success:', data);
-      if(data.available)
-      {
-        setBackendConnected(true)
-      } 
-      else
-      {
-        setBackendConnected(false)
-      }  
-    })
-    .catch(error => {
-      setBackendConnected(false)
-
-      console.error('Error:', error);
-    });
-  }
+  const [displayedData, setDisplayedData] = useState(() => linkMap.get(SectionEnum.INTRO));
+  const [isFading, setIsFading] = useState(false);
 
   useEffect(() => {
-    backendCheck()
+    const timer = setTimeout(() => setIsLoaded(true), 50);
+    return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    if (isRecording) {
-      setAnimation([]);
-    }
-    else
-    {
-     
-    }
-  }, [isRecording]);
+  const handleSelectSection = (enumKey) => {
+    if (enumKey === selected) return;
 
-  useEffect(() => {
-   
-    if (animation.length > 0) {
-      setAnimations((prev) => {
-        prev.push({ name: animationName, clip: animation });
-    
-        return prev;
-      });
-      setAnimation([]);
+    setSelected(enumKey);
+    setIsFading(true);
 
-    }
-  }, [isConfiguring]);
+    setTimeout(() => {
+      const newData = linkMap.get(enumKey);
+      setDisplayedData(newData);
+      setIsFading(false);
+    }, 250);
+  };
 
-  const resetExportVideo=()=>{setExportVid(false)}
+  const currentData = displayedData || new SectionData({
+    label: '',
+    section: 'Section',
+    details: 'This text area will update later depending on your active selection above.',
+    buttonText: 'Enter Experience',
+    buttonLink: '#',
+    image: ''
+  });
 
   return (
-    <div className="app">
-      <div className="panel left-panel">
-        <Scene
-          orbitControlsRef={orbitControlsRef}
-          isRecording={isRecording}
-          setAnimation={setAnimation}
-          clip={playedClip}
-          setClip={setPlayedClip} 
-          exportVid={exportVid}
-          resetExportVideo={resetExportVideo}
-        />
-      </div>
-      <div className="panel right-panel">
-        {isConfiguring ? (
-          <>
-            <input
-              type="text"
-              value={animationName}
-              onChange={(e) => setAnimationName(e.target.value)}
-              placeholder="Animation Name"
-            />
+    <div className="app-container">
+      
+      <header className="top-links">
+        <a href="https://github.com/shoshanimayan" target="_blank" rel="noreferrer">
+          <img src="https://raw.githubusercontent.com/shoshanimayan/shoshanimayan.github.io/master/_images/GitHub-Mark-Light-64px.png" alt="github" />
+        </a>
+        <a href="https://www.linkedin.com/in/mayan-shoshani/" target="_blank" rel="noreferrer">
+          <img src="https://raw.githubusercontent.com/shoshanimayan/shoshanimayan.github.io/master/_images/LinkedIn-Logo-64x64.png" alt="Linkedin" />
+        </a>
+      </header>
 
-            <button
-              onClick={() => {
-                setIsRecording(!isRecording);
-              }}
-            >
-              {isRecording ? "Stop Recording" : "Start Recording"}
-            </button>
-            <button
-              onClick={() => {
-                setIsConfiguring(false);
-                // push the animation configuration to animations
-              }}
-            >
-              Save Animation
-            </button>
-          </>
-        ) : (
-          <>
-            {animations &&
-              animations.length > 0 &&
-              animations.map((a, index) => (
-                <div key={index} style={{ display: "flex", gap: "10px" }}>
+      <main className="r3f-canvas-area">
+        <div className="canvas-ui-overlay">          
+          <div className={`ui-panel panel-left slide-left ${isLoaded ? 'slide-in' : ''}`}>
+            <h3 className='sub-header'>Instructions</h3>
+            <p>Drag anywhere in the center to rotate the cube.</p>
+            <p>Use Navigation panel to navigate topics.</p>
+          </div>
+          <div ref={viewRef} className="ui-3d-container"></div>
+          <div className={`ui-panel panel-right slide-right ${isLoaded ? 'slide-in' : ''}`}>
+            <h3 className='sub-header'>Navigation</h3>
+            <ul className="nav-list">
+              {Array.from(linkMap.entries()).map(([enumKey, data]) => {
+                const isActive = selected === enumKey;
+                return (
+                  <li key={enumKey.description}>
+                    <button
+                      className={`nav-item-btn ${isActive ? 'active' : ''}`}
+                      onClick={() => handleSelectSection(enumKey)}
+                    >
+                      {data.label}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+          <div className={`ui-panel panel-bottom fade-panel ${isFading ? 'faded' : ''}`}>
+            <h2>{currentData.section}</h2>
+            <p>{currentData.details}</p>
+          </div>
+        </div>
+        <Canvas className="global-canvas" camera={{ position: [0, 0, 4], fov: 45 }}>
+          <View track={viewRef}>
+            <Scene imageUrl={linkMap.get(selected)?.image} sectionType={selected}/>
+          </View>
+        </Canvas>
+      </main>
+      <footer className="main-entry-area">
+        <button 
+          className="entry-button"
+          onClick={() => window.location.href = currentData.buttonLink}
+        >
+          {currentData.buttonText}
+        </button>
+      </footer>
 
-                  <span>{a.name+" "}</span>
-                  <button
-                    onClick={() => {
-                      setPlayedClip(a.clip)
-                    }}
-                  >
-                    Play
-                  </button>
-                  {backendConnected&&  <button
-                    onClick={() => {
-                      setPlayedClip(a.clip)
-                      setExportVid(true)
-                    }}
-                  >
-                    Export Video
-                  </button>}
-                </div>
-              ))}
-            <button
-              onClick={() => {
-                setIsConfiguring(true);
-              }}
-            >
-              Add Animation
-            </button>
-          </>
-        )}
-      </div>
     </div>
   );
 }
-
-export default App;
